@@ -1,8 +1,12 @@
 [package]
-authors = ['Anonymous']
+authors = ['TiedyeNetwork']
 edition = '2018'
-name = 'node-template-runtime'
+name = 'tiedye-runtime'
 version = '2.0.0'
+
+[dependencies]
+schnorrkel = "0.8.5"
+
 [dependencies.babe]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
@@ -123,6 +127,7 @@ default_features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'sr-version'
 rev = '3ba0f2a2dbd37c31851a0ff1c1c0c47aa940de90'
+
 [build-dependencies.wasm-builder-runner]
 package = 'substrate-wasm-builder-runner'
 version = '1.0.2'

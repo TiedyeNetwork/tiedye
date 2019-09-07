@@ -35,6 +35,8 @@ pub use balances::Call as BalancesCall;
 pub use sr_primitives::{Permill, Perbill};
 pub use support::{StorageValue, construct_runtime, parameter_types};
 
+mod channel;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -61,8 +63,6 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-/// Used for the module template in `./template.rs`
-mod template;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -94,8 +94,8 @@ pub mod opaque {
 
 /// This runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("node-template"),
-	impl_name: create_runtime_str!("node-template"),
+	spec_name: create_runtime_str!("tiedye"),
+	impl_name: create_runtime_str!("tiedye"),
 	authoring_version: 3,
 	spec_version: 4,
 	impl_version: 4,
@@ -252,9 +252,9 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-/// Used for the module template in `./template.rs`
-impl template::Trait for Runtime {
+impl channel::Trait for Runtime {
 	type Event = Event;
+	type Currency = Balances;
 }
 
 construct_runtime!(
@@ -270,8 +270,7 @@ construct_runtime!(
 		Indices: indices::{default, Config<T>},
 		Balances: balances,
 		Sudo: sudo,
-		// Used for the module template in `./template.rs`
-		TemplateModule: template::{Module, Call, Storage, Event<T>},
+		Channel: channel::{Module, Call, Storage, Event<T>},
 	}
 );
 

@@ -1,70 +1,21 @@
-# Substrate Node Template
+# TieDye
 
-A new SRML-based Substrate node, ready for hacking.
+TieDye is a next generation financial engine. Built on top of the innovative new primitive of synthetic channels,
+it allows a base layer blockchain to scale to very rapid trades on any imaginable asset or financial contract. 
 
-## Build
+## Use Cases
 
-Install Rust:
+TieDye can be used for the creation of any financial contract imaginable, granted there is a counter-party prepared
+to take the other side. Since there are incentives and strategies to hedge trades, market makers will be able to make
+profit by accepting many connections with little risk to their underlying collateral. Trading happens entirely offchain
+inside of a special kind of state channel known as synthetic channels, that allow rapid updates.
 
-```bash
-curl https://sh.rustup.rs -sSf | sh
-```
+TieDye is agnostic to the kind of financial agreements that exist on the second layer network, some products that can
+be built on top of the base TieDye blockchain include:
 
-Install required tools:
+- Margin trading. Imagine a trustless BitMEX, where you could exceed even 100x leverage and never are at risk of losing
+funds due to an exit scam. Instead of the limited number of assets offered on centralized exchanges (7 or 8 different contract 
+types are supported on BitMEX for example), TieDEX could offer leveraged positions on _any_ asset, cryptoasset or 
+traditional, with very little-- possibly no-- overhead to the counterparty.
 
-```bash
-./scripts/init.sh
-```
-
-Build Wasm and native code:
-
-```bash
-cargo build
-```
-
-## Run
-
-### Single node development chain
-
-You can start a development chain with:
-
-```bash
-cargo run -- --dev
-```
-
-Detailed logs may be shown by running the node with the following environment variables set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
-
-### Multi-node local testnet
-
-If you want to see the multi-node consensus algorithm in action locally, then you can create a local testnet with two validator nodes for Alice and Bob, who are the initial authorities of the genesis chain that have been endowed with testnet units.
-
-Optionally, give each node a name and expose them so they are listed on the Polkadot [telemetry site](https://telemetry.polkadot.io/#/Local%20Testnet).
-
-You'll need two terminal windows open.
-
-We'll start Alice's substrate node first on default TCP port 30333 with her chain database stored locally at `/tmp/alice`. The bootnode ID of her node is `QmRpheLN4JWdAnY7HGJfWFNbfkQCb6tFf4vvA6hgjMZKrR`, which is generated from the `--node-key` value that we specify below:
-
-```bash
-cargo run -- \
-  --base-path /tmp/alice \
-  --chain=local \
-  --alice \
-  --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
-  --telemetry-url ws://telemetry.polkadot.io:1024 \
-  --validator
-```
-
-In the second terminal, we'll start Bob's substrate node on a different TCP port of 30334, and with his chain database stored locally at `/tmp/bob`. We'll specify a value for the `--bootnodes` option that will connect his node to Alice's bootnode ID on TCP port 30333:
-
-```bash
-cargo run -- \
-  --base-path /tmp/bob \
-  --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/QmRpheLN4JWdAnY7HGJfWFNbfkQCb6tFf4vvA6hgjMZKrR \
-  --chain=local \
-  --bob \
-  --port 30334 \
-  --telemetry-url ws://telemetry.polkadot.io:1024 \
-  --validator
-```
-
-Additional CLI usage options are available and may be shown by running `cargo run -- --help`.
+- Prediction markets.  

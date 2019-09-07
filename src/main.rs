@@ -12,12 +12,12 @@ pub use substrate_cli::{VersionInfo, IntoExit, error};
 
 fn main() {
 	let version = VersionInfo {
-		name: "Substrate Node",
+		name: "Tiedye Node",
 		commit: env!("VERGEN_SHA_SHORT"),
 		version: env!("CARGO_PKG_VERSION"),
-		executable_name: "node-template",
-		author: "Anonymous",
-		description: "Template Node",
+		executable_name: "tiedye",
+		author: "TiedyeNetwork",
+		description: "tiedye",
 		support_url: "support.anonymous.an",
 	};
 
