@@ -4,9 +4,6 @@ edition = '2018'
 name = 'tiedye-runtime'
 version = '2.0.0'
 
-[dependencies]
-schnorrkel = "0.8.5"
-
 [dependencies.babe]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'

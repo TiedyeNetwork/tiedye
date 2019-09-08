@@ -90,6 +90,9 @@ decl_module! {
 
 			let channel = Self::channels(channel_id);
 
+			// Make sure the sender is the recipient of this simple channel.
+			ensure!(recipient == channel.recipient, "Sender is not the channel recipient");
+
 			// The off-chain logic should never allow this to possible, so the adjudication layer will throw it.
 			ensure!(channel.collateral >= val, "Submitted an impossible state");
 
@@ -107,7 +110,7 @@ decl_module! {
 			T::Currency::unreserve(&channel.sender, channel.collateral);
 
 			// Finally make the transfer and complete the channel.
-			T::Currency::transfer(&channel.sender, &channel.recipient, val);
+			T::Currency::transfer(&channel.sender, &channel.recipient, val)?;
 
 			// Delete the channel.
 			<Channels<T>>::remove(channel_id);
@@ -129,10 +132,10 @@ impl<T: Trait> Module<T> {
 		sr25519_verify(&s, msg.as_slice(), &p)
 	}
 
-	fn register_public(owner: T::AccountId, pub_key: Vec<u8>) -> bool {
-		// Perform a check that this key is not already registered.
-		true
-	}
+	// fn register_public(owner: T::AccountId, pub_key: Vec<u8>) -> bool {
+	// 	// Perform a check that this key is not already registered.
+	// 	true
+	// }
 }
 
 decl_event!(
