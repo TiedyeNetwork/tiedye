@@ -1,6 +1,9 @@
 use codec::{Encode, Decode};
 use rstd::prelude::*;
-use support::{decl_module, decl_storage, decl_event, ensure, StorageMap, StorageValue, Parameter, dispatch::Result};
+use rstd::convert::{TryInto};
+#[cfg(not(feature = "std"))]
+use rstd::alloc::borrow::ToOwned;
+use support::{decl_module, decl_storage, decl_event, ensure, StorageMap, StorageValue, dispatch::Result};
 use support::traits::{Currency, ReservableCurrency};
 use system::ensure_signed;
 
@@ -8,13 +11,15 @@ use primitives::sr25519;
 use primitives::crypto::Public;
 use runtime_io::sr25519_verify;
 
-// #[cfg(feature = "std")]
-// use schnorrkel::{Keypair, PublicKey, MiniSecretKey, MINI_SECRET_KEY_LENGTH, ExpansionMode, signing_context, Signature};
+fn to_u128(slice: &[u8]) -> u128 {
+    slice.iter().rev().fold(0, |acc, &b| acc*2 + b as u128)
+}
 
 #[derive(Default, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Channel<AccountId, Balance, Moment> {
 	sender: AccountId,
+	signing_key: Vec<u8>,
 	recipient: AccountId,
 	start: Moment,
 	collateral: Balance,
@@ -23,47 +28,50 @@ pub struct Channel<AccountId, Balance, Moment> {
 type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 pub trait Trait: system::Trait + timestamp::Trait {
-	// type ChannelId: Member + Parameter + Default + Copy;
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type Currency: ReservableCurrency<Self::AccountId>;
+	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as ChannelStorage {
 		Channels get(channels): map u32 => Channel<T::AccountId, BalanceOf<T>, T::Moment>;
 
+		KeyRegistry get(key_registry): map T::AccountId => Vec<u8>;
+
 		NextFreeId: u32;
 	}
 }
 
-// The module's dispatchable functions.
 decl_module! {
-	/// The module declaration.
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
-		pub fn verify_signature(origin, public_key: Vec<u8>, message: Vec<u8>, signature: Vec<u8>) -> Result {
-			// runtime_io::print( public_key.as_slice() );
-			// runtime_io::print( message.as_slice() );
-			// runtime_io::print( signature.as_slice() );
+		// pub fn verify_signature(_origin, public_key: Vec<u8>, message: Vec<u8>, signature: Vec<u8>) -> Result {
+		// 	// runtime_io::print( public_key.as_slice() );
+		// 	// runtime_io::print( message.as_slice() );
+		// 	// runtime_io::print( signature.as_slice() );
 
-			let sig = sr25519::Signature::from_slice(signature.as_slice());
-			let pub_key = sr25519::Public::from_slice(public_key.as_slice());
+		// 	let sig = sr25519::Signature::from_slice(signature.as_slice());
+		// 	let pub_key = sr25519::Public::from_slice(public_key.as_slice());
 
-			let ver: u8 = sr25519_verify(&sig, message.as_slice(), &pub_key).into();
-			// runtime_io::print( ver.into() );
-			ensure!(ver == 1, "Signature did not verify");
+		// 	let ver: u8 = sr25519_verify(&sig, message.as_slice(), &pub_key).into();
+		// 	// runtime_io::print( ver.into() );
+		// 	ensure!(ver == 1, "Signature did not verify");
 
-			Ok(())
-		}
+		// 	Ok(())
+		// }
 
-		pub fn one_way_channel(origin, recipient: T::AccountId, collateral: BalanceOf<T>) -> Result {
+		// We insert the public key here, this way we make a distinction between the key being used for signing
+		// and the key for the account. This is so that the account can remain secure while the signing key may be
+		// delegated to a possible third party.
+		pub fn one_way_channel(origin, public_key: Vec<u8>, recipient: T::AccountId, collateral: BalanceOf<T>) -> Result {
 			let sender = ensure_signed(origin)?;
 
 			T::Currency::reserve(&sender, collateral)?;
 
 			let new_channel = Channel {
 				sender: sender.clone(),
+				signing_key: public_key.to_owned(),
 				recipient: recipient,
 				collateral: collateral,
 				start: <timestamp::Module<T>>::now(),
@@ -72,39 +80,63 @@ decl_module! {
 			let channel_id = Self::new_id();
 
 			<Channels<T>>::insert(channel_id, new_channel);
+			<KeyRegistry<T>>::insert(sender.clone(), public_key);
 
 			Self::deposit_event(RawEvent::NewChannel(channel_id, sender.clone()));
 
 			Ok(())
 		}
 
-		// pub fn close_channel(origin, signature: Vec<u8>, msg: Vec<u8>) -> Result {
-		// 	let sender = ensure_signed(origin)?;
+		// Ideally we would put the channel_id into the message instead of two variables.
+		pub fn close_one_way_channel(origin, public_key: Vec<u8>, channel_id: u32, amount: Vec<u8>, signature: Vec<u8>) -> Result {
+			// There are two conditions for which a one-way channel could close:
+			//  - Sender is closing. Sender could be submitting an expired state so we must keep the channel in a
+			//    a dispute period for some length of time. During the dispute period, the recipient can submit a newer
+			//	  and valid state signed by both parties. 
+			//  - Recipient is closing. No matter who closes, we need a dispute period. The only case we will not need a 
+			//    dispute period is if it was a strict rule in the second-layer protocol that value could increment
+			//	  up and never decrease.
+			//
+			// For sake of simplicity we do not implement a dispute period here. We're still trying to get MVP shipped.
+			// We only allow recipient to submit, and the message must be signed by sender.
+			let recipient = ensure_signed(origin)?;
 
-		// 	let closing_party;
-		// 	if sender == Self::channel().sender {
-		// 		closing_party = 0;
-		// 	} else if sender == Self::channel().recipient {
-		// 		closing_party = 1;
-		// 	} else { return Ok(()); }
+			let val: BalanceOf<T> = to_u128(amount.as_slice()).try_into().ok().unwrap();
 
-		// 	let mut sig = sr25519::Signature::default();
-		// 	sig.as_mut().copy_from_slice(&signature);
+			let channel = Self::channels(channel_id);
 
-		// 	let mut pubkey = sr25519::Public::default();
+			// The off-chain logic should never allow this to possible, so the adjudication layer will throw it.
+			ensure!(channel.collateral >= val, "Submitted an impossible state");
 
-		// 	pubkey.as_mut().copy_from_slice(&sender.encode());
+			// We may eventually want to change this to pay out the highest possible balance, in the case of something
+			// like a slashing occurring on this user. The recipient of this channel would then need to bring it up
+			// in the governance mechanism.
+			ensure!(T::Currency::reserved_balance(&channel.sender) >= val, "Submitted an impossible state");
 
-		// 	// runtime_io::sr25519_verify(&sig, msg.as_ref(), &pubkey);
+			// Now we need to make sure that the signature matches that of the sender. We can use the `is_signed`
+			// helper function defined below.
+			ensure!(Self::is_signed(public_key, amount, signature), "Invalid signature");
 
-		// 	Ok(())
-		// }
+			Ok(())
+
+		}
 	}
 }
 
 impl<T: Trait> Module<T> {
 	fn new_id() -> u32 {
 		<NextFreeId>::mutate(|n| { let r = *n; *n += 1; r })
+	}
+
+	fn is_signed(pub_key: Vec<u8>, msg: Vec<u8>, sig: Vec<u8>) -> bool {
+		let s = sr25519::Signature::from_slice(sig.as_slice());
+		let p = sr25519::Public::from_slice(pub_key.as_slice());
+		sr25519_verify(&s, msg.as_slice(), &p)
+	}
+
+	fn register_public(owner: T::AccountId, pub_key: Vec<u8>) -> bool {
+		// Perform a check that this key is not already registered.
+		true
 	}
 }
 
