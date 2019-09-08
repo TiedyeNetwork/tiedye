@@ -1,3 +1,5 @@
+![Tiedye](./Tiedye-cover.png)
+
 <a href="https://t.me/TiedyeNetwork">
     <img src="https://img.shields.io/badge/Telegram-https%3A%2F%2Ft.me%2FTiedyeNetwork-%232CA5E0?style=for-the-badge&logo=telegram"/>
 </a>
