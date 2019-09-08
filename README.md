@@ -1,3 +1,7 @@
+<a href="https://t.me/TiedyeNetwork">
+    <img src="https://img.shields.io/badge/Telegram-https%3A%2F%2Ft.me%2FTiedyeNetwork-%232CA5E0?style=for-the-badge&logo=telegram"/>
+</a>
+
 # TieDye
 
 TieDye is a next generation financial engine. Built on top of the innovative new primitive of synthetic channels,
@@ -18,4 +22,13 @@ funds due to an exit scam. Instead of the limited number of assets offered on ce
 types are supported on BitMEX for example), TieDEX could offer leveraged positions on _any_ asset, cryptoasset or 
 traditional, with very little-- possibly no-- overhead to the counterparty.
 
-- Prediction markets.  
+- Prediction markets...
+
+- Fiat currencies, exotic derivatives, complex financial contracts. The TieDye settlement layer is completely agnostic
+to the kinds of assets that are traded inside of its synthetic channels. They could be fiat currencies like the euro,
+oil futures, or leveraged exposure with interest. As long as there's an accepted price oracle, it can be traded.
+
+## Scalability
+
+Tiedye is channel framework built on a specialized blockchain settlement layer, which means it will be intensely scalable.
+

@@ -46,21 +46,6 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
-		// pub fn verify_signature(_origin, public_key: Vec<u8>, message: Vec<u8>, signature: Vec<u8>) -> Result {
-		// 	// runtime_io::print( public_key.as_slice() );
-		// 	// runtime_io::print( message.as_slice() );
-		// 	// runtime_io::print( signature.as_slice() );
-
-		// 	let sig = sr25519::Signature::from_slice(signature.as_slice());
-		// 	let pub_key = sr25519::Public::from_slice(public_key.as_slice());
-
-		// 	let ver: u8 = sr25519_verify(&sig, message.as_slice(), &pub_key).into();
-		// 	// runtime_io::print( ver.into() );
-		// 	ensure!(ver == 1, "Signature did not verify");
-
-		// 	Ok(())
-		// }
-
 		// We insert the public key here, this way we make a distinction between the key being used for signing
 		// and the key for the account. This is so that the account can remain secure while the signing key may be
 		// delegated to a possible third party.
@@ -88,7 +73,7 @@ decl_module! {
 		}
 
 		// Ideally we would put the channel_id into the message instead of two variables.
-		pub fn close_one_way_channel(origin, public_key: Vec<u8>, channel_id: u32, amount: Vec<u8>, signature: Vec<u8>) -> Result {
+		pub fn close_one_way_channel(origin, channel_id: u32, amount: Vec<u8>, signature: Vec<u8>) -> Result {
 			// There are two conditions for which a one-way channel could close:
 			//  - Sender is closing. Sender could be submitting an expired state so we must keep the channel in a
 			//    a dispute period for some length of time. During the dispute period, the recipient can submit a newer
@@ -115,7 +100,17 @@ decl_module! {
 
 			// Now we need to make sure that the signature matches that of the sender. We can use the `is_signed`
 			// helper function defined below.
-			ensure!(Self::is_signed(public_key, amount, signature), "Invalid signature");
+			ensure!(Self::is_signed(channel.signing_key, amount, signature), "Invalid signature");
+
+			// We unreserve the collateral locked in this channel and transfer the amount signed by the sender
+			// to the recipient.
+			T::Currency::unreserve(&channel.sender, channel.collateral);
+
+			// Finally make the transfer and complete the channel.
+			T::Currency::transfer(&channel.sender, &channel.recipient, val);
+
+			// Delete the channel.
+			<Channels<T>>::remove(channel_id);
 
 			Ok(())
 
