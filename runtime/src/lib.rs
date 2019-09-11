@@ -36,6 +36,7 @@ pub use sr_primitives::{Permill, Perbill};
 pub use support::{StorageValue, construct_runtime, parameter_types};
 
 mod channel;
+mod oracle;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -116,7 +117,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// `SLOT_DURATION` instead (like the timestamp module for calculating the
 /// minimum period).
 /// <https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#6-practical-results>
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
+pub const MILLISECS_PER_BLOCK: u64 = 3000;
 
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
@@ -257,6 +258,10 @@ impl channel::Trait for Runtime {
 	type Currency = Balances;
 }
 
+impl oracle::Trait for Runtime {
+	type Event = Event;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -271,6 +276,7 @@ construct_runtime!(
 		Balances: balances,
 		Sudo: sudo,
 		Channel: channel::{Module, Call, Storage, Event<T>},
+		Oracle: oracle::{Module, Call, Event},
 	}
 );
 

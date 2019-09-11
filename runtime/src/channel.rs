@@ -1,3 +1,22 @@
+//! # Channels Module
+//! 
+//! The Channels module allows for the creation of synthetic channels between two parties and 
+//! the settlement thereof. 
+//! 
+//! ## Interface
+//! 
+//! ### Public Functions
+//! 
+//! - `open_channel` - Opens a new channel saving the initial state.
+//! - `settle_channel` - An agreed settlement of a channel, does not require a dispute.
+//! - `dispute_channel` - Begins a dispute on a channel's state, something went wrong in the channel.
+//! - `liquidate_channel` - Attempts a liquidation of a channel with a signed state proving that one party is undercollaterized.
+//! - `collateralize_channel` - Inserts more collateral, does not require a signed state and should be verified by the other chain participant when signing new state.
+//! 
+//! ## Dependencies
+//! 
+//! This module depends on the Oracle module.
+
 use codec::{Encode, Decode};
 use rstd::prelude::*;
 use rstd::convert::{TryInto};
@@ -10,10 +29,6 @@ use system::ensure_signed;
 use primitives::sr25519;
 use primitives::crypto::Public;
 use runtime_io::sr25519_verify;
-
-fn to_u128(slice: &[u8]) -> u128 {
-    slice.iter().rev().fold(0, |acc, &b| acc*2 + b as u128)
-}
 
 #[derive(Default, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -28,7 +43,7 @@ pub struct Channel<AccountId, Balance, Moment> {
 type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 pub trait Trait: system::Trait + timestamp::Trait {
-	type Currency: ReservableCurrency<Self::AccountId>;
+	type Currency: ReservableCurrency<Self::AccountId> + Currency<Self::AccountId>;
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
@@ -86,7 +101,14 @@ decl_module! {
 			// We only allow recipient to submit, and the message must be signed by sender.
 			let recipient = ensure_signed(origin)?;
 
-			let val: BalanceOf<T> = to_u128(amount.as_slice()).try_into().ok().unwrap();
+			// let i = read_be_u128(&mut amount.as_slice());
+			// runtime_io::print(i as u64);
+			// let val: BalanceOf<T> = i.try_into().ok().unwrap();
+			// let val: BalanceOf<T> = amount.as_slice().try_into().ok().unwrap();
+			let uint = u128::decode(&mut amount.as_slice()).unwrap();
+			runtime_io::print(uint as u64);
+			let val: BalanceOf<T> = uint.try_into().ok().unwrap();
+
 
 			let channel = Self::channels(channel_id);
 
@@ -110,13 +132,16 @@ decl_module! {
 			T::Currency::unreserve(&channel.sender, channel.collateral);
 
 			// Finally make the transfer and complete the channel.
-			T::Currency::transfer(&channel.sender, &channel.recipient, val)?;
+			let currency_transfer = T::Currency::transfer(&channel.sender, &channel.recipient, val);
+			match currency_transfer {
+				Err(_e) => runtime_io::print(_e),
+				Ok(_v) => {}
+			}
 
 			// Delete the channel.
 			<Channels<T>>::remove(channel_id);
 
 			Ok(())
-
 		}
 	}
 }

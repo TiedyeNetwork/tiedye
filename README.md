@@ -19,9 +19,7 @@ inside of a special kind of state channel known as synthetic channels, that allo
 TieDye is agnostic to the kind of financial agreements that exist on the second layer network, some products that can
 be built on top of the base TieDye blockchain include:
 
-- Margin trading. Imagine a trustless BitMEX, where you could exceed even 100x leverage and never are at risk of losing
-funds due to an exit scam. Instead of the limited number of assets offered on centralized exchanges (7 or 8 different contract 
-types are supported on BitMEX for example), TieDEX could offer leveraged positions on _any_ asset, cryptoasset or 
+- Margin trading. TieDEX could offer leveraged positions on _any_ asset, cryptoasset or 
 traditional, with very little-- possibly no-- overhead to the counterparty.
 
 - Prediction markets...
