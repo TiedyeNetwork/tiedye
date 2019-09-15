@@ -1,5 +1,3 @@
-//! Substrate Node Template CLI library.
-
 #![warn(missing_docs)]
 #![warn(unused_extern_crates)]
 
@@ -17,8 +15,8 @@ fn main() {
 		version: env!("CARGO_PKG_VERSION"),
 		executable_name: "tiedye",
 		author: "TiedyeNetwork",
-		description: "tiedye",
-		support_url: "support.anonymous.an",
+		description: "A next generation financial engine.",
+		support_url: "https://github.com/TiedyeNetwork/tiedye/issues",
 	};
 
 	if let Err(e) = cli::run(::std::env::args(), cli::Exit, version) {

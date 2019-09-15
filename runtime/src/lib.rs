@@ -19,6 +19,8 @@ use sr_primitives::weights::Weight;
 use babe::{AuthorityId as BabeId};
 use grandpa::{AuthorityId as GrandpaId, AuthorityWeight as GrandpaWeight};
 use grandpa::fg_primitives::{self, ScheduledChange};
+use oracle::sr25519::{AuthorityId as OracleId};
+use system::offchain::TransactionSubmitter;
 use client::{
 	block_builder::api::{CheckInherentsResult, InherentData, self as block_builder_api},
 	runtime_api as client_api, impl_runtime_apis
@@ -209,7 +211,7 @@ impl indices::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const MinimumPeriod: u64 = 5000;
+	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
 
 impl timestamp::Trait for Runtime {
@@ -258,7 +260,12 @@ impl channel::Trait for Runtime {
 	type Currency = Balances;
 }
 
+type SubmitTransaction = TransactionSubmitter<OracleId, Runtime, UncheckedExtrinsic>;
+
 impl oracle::Trait for Runtime {
+	type AuthorityId = OracleId;
+	type Call = Call;
+	type SubmitTransaction = SubmitTransaction;
 	type Event = Event;
 }
 
@@ -276,7 +283,7 @@ construct_runtime!(
 		Balances: balances,
 		Sudo: sudo,
 		Channel: channel::{Module, Call, Storage, Event<T>},
-		Oracle: oracle::{Module, Call, Event},
+		Oracle: oracle::{Module, Call, Storage, Event},
 	}
 );
 

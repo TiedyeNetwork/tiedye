@@ -102,11 +102,11 @@ decl_module! {
 			let recipient = ensure_signed(origin)?;
 
 			// let i = read_be_u128(&mut amount.as_slice());
-			// runtime_io::print(i as u64);
+			// support::print(i as u64);
 			// let val: BalanceOf<T> = i.try_into().ok().unwrap();
 			// let val: BalanceOf<T> = amount.as_slice().try_into().ok().unwrap();
 			let uint = u128::decode(&mut amount.as_slice()).unwrap();
-			runtime_io::print(uint as u64);
+			support::print(uint as u64);
 			let val: BalanceOf<T> = uint.try_into().ok().unwrap();
 
 
@@ -134,7 +134,7 @@ decl_module! {
 			// Finally make the transfer and complete the channel.
 			let currency_transfer = T::Currency::transfer(&channel.sender, &channel.recipient, val);
 			match currency_transfer {
-				Err(_e) => runtime_io::print(_e),
+				Err(_e) => support::print(_e),
 				Ok(_v) => {}
 			}
 

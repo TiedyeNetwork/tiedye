@@ -6,8 +6,8 @@ const port = 7666;
 app.get('/mock', (_, res) => {
   console.log('was hit!');
 
-  const data = Buffer.from('2a2a', 'hex');
-  console.log(data.toString('hex'));
+  const data = Buffer.from('2a', 'hex');
+  // console.log(data.toString('hex'));
   res.status(200).send(data);
 });
 

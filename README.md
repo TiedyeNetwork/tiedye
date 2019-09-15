@@ -42,3 +42,4 @@ Tiedye is channel framework built on a specialized blockchain settlement layer, 
 allows two-parties to make trades with each other at low-latency. 
 - [Oracles](./runtime/src/oracle.rs) - Using the Substrate offchain worker, the Oracle module enables external data
 such as price feeds to be brought onto the Tiedye chain. 
+- [Disputes]() - Inspired by the Substrate Offences module, handles the disputes of channels and oracles.
