@@ -1,8 +1,11 @@
 [package]
-authors = ['TiedyeNetwork']
+authors = ['Tiedye Network <hi@tiedye.io>']
 edition = '2018'
 name = 'tiedye-runtime'
 version = '0.0.1'
+
+[dependencies]
+tiedye-primitives = { path = "../primitives", default-features = false }
 
 [dependencies.app-crypto]
 default-features = false
@@ -91,9 +94,26 @@ features = ['derive']
 optional = true
 version = '1.0'
 
+[dependencies.session]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'srml-session'
+rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
+
 [dependencies.sr-primitives]
 default_features = false
 git = 'https://github.com/paritytech/substrate.git'
+rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
+
+[dependencies.sr-staking-primitives]
+default_features = false
+git = 'https://github.com/paritytech/substrate.git'
+rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
+
+[dependencies.staking]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'srml-staking'
 rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
 
 [dependencies.substrate-session]
@@ -152,6 +172,8 @@ std = [
     'grandpa/std',
     'primitives/std',
     'sr-primitives/std',
+    'session/std',
+    'staking/std',
     'system/std',
     'timestamp/std',
     'sudo/std',

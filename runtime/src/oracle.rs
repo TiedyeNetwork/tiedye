@@ -11,19 +11,16 @@
 use codec::{Encode, Decode};
 use rstd::prelude::*;
 use sr_primitives::app_crypto::RuntimeAppPublic;
-use primitives::crypto::KeyTypeId;
 use sr_primitives::traits::Member;
+use sr_primitives::transaction_validity::{TransactionValidity, TransactionLongevity, ValidTransaction, InvalidTransaction};
 use support::{decl_module, decl_event, decl_storage, Parameter, StorageMap, StorageValue, dispatch::Result};
 use system::ensure_none;
 use system::offchain::SubmitUnsignedTransaction;
 
-// TODO: extract this out to its own primitives folder.
-pub const ORACLE: KeyTypeId = KeyTypeId(*b"orac");
-
 pub mod sr25519 {
     mod app_sr25519 {
         use app_crypto::{app_crypto, sr25519};
-        app_crypto!(sr25519, crate::oracle::ORACLE);
+        app_crypto!(sr25519, tiedye_primitives::ORACLE);
 
         impl From<Signature> for sr_primitives::AnySignature {
             fn from(sig: Signature) -> Self {
@@ -49,7 +46,7 @@ pub struct OracleResult<Moment> {
     last_update: Moment,
 }
 
-pub trait Trait: system::Trait + timestamp::Trait {
+pub trait Trait: system::Trait + timestamp::Trait + session::Trait {
     /// The identifier type for an authority.
     type AuthorityId: Member + Parameter + RuntimeAppPublic + Default + Ord;
 
@@ -62,6 +59,12 @@ pub trait Trait: system::Trait + timestamp::Trait {
     /// A transaction submitter.
     type SubmitTransaction: SubmitUnsignedTransaction<Self, <Self as Trait>::Call>;
 }
+
+decl_event!(
+    pub enum Event {
+        Hi(),
+    }
+);
 
 decl_storage! {
     trait Store for Module<T: Trait> as OracleStorage {
@@ -84,6 +87,7 @@ decl_module! {
 
         fn update_feed(origin, value: u32, signature: <T::AuthorityId as RuntimeAppPublic>::Signature) {
             ensure_none(origin)?;
+            support::print("update feed");
             
             if !<Results<T>>::exists(1) {
                 support::print("doesn't exist");
@@ -153,10 +157,72 @@ impl<T: Trait> Module<T> {
         }
         Ok(())
     }
+
+    fn initialize_keys(keys: &[T::AuthorityId]) {
+        if !keys.is_empty() {
+            assert!(Keys::<T>::get().is_empty(), "Keys are already initialized!");
+            Keys::<T>::put_ref(keys);
+        }
+    }
 }
 
-decl_event!(
-    pub enum Event {
-        Hi(),
+impl<T: Trait> session::OneSessionHandler<T::AccountId> for Module<T> {
+    type Key = T::AuthorityId;
+
+    fn on_genesis_session<'a, I: 'a>(validators: I)
+        where I: Iterator<Item=(&'a T::AccountId, T::AuthorityId)>
+    {
+        let keys = validators.map(|x| x.1).collect::<Vec<_>>();
+        Self::initialize_keys(&keys);
     }
-);
+
+    fn on_new_session<'a, I: 'a>(_changed: bool, validators: I, _queued_validators: I)
+		where I: Iterator<Item=(&'a T::AccountId, T::AuthorityId)>
+	{
+		// Remember who the authorities are for the new session.
+		Keys::<T>::put(validators.map(|x| x.1).collect::<Vec<_>>());
+	}
+
+    fn on_before_session_ending() {
+        // ignore
+    }
+
+    fn on_disabled(_i: usize) {
+        // ignore
+    }
+}
+
+impl<T: Trait> support::unsigned::ValidateUnsigned for Module<T> {
+    type Call = Call<T>;
+
+    fn validate_unsigned(call: &Self::Call) -> TransactionValidity {
+        if let Call::update_feed(value, signature) = call {
+
+            let current_session = <session::Module<T>>::current_index();
+
+            let keys = Keys::<T>::get();
+            let authority_id = match keys.get(1) {
+                Some(id) => id,
+                None => return InvalidTransaction::BadProof.into(),
+            };
+
+            let signature_valid = value.using_encoded(|encoded_value| {
+                authority_id.verify(&encoded_value, &signature)
+            });
+
+            if !signature_valid {
+                return InvalidTransaction::BadProof.into();
+            }
+
+            Ok(ValidTransaction {
+                priority: 0,
+                requires: vec![],
+                provides: vec![(current_session, authority_id).encode()],
+                longevity: TransactionLongevity::max_value(),
+                propagate: true,
+            })
+        } else {
+            InvalidTransaction::Call.into()
+        }
+    }
+}

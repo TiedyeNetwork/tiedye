@@ -20,6 +20,7 @@ use babe::{AuthorityId as BabeId};
 use grandpa::{AuthorityId as GrandpaId, AuthorityWeight as GrandpaWeight};
 use grandpa::fg_primitives::{self, ScheduledChange};
 use oracle::sr25519::{AuthorityId as OracleId};
+use tiedye_primitives::{Balance, ORACLE};
 use system::offchain::TransactionSubmitter;
 use client::{
 	block_builder::api::{CheckInherentsResult, InherentData, self as block_builder_api},
@@ -36,9 +37,10 @@ pub use timestamp::Call as TimestampCall;
 pub use balances::Call as BalancesCall;
 pub use sr_primitives::{Permill, Perbill};
 pub use support::{StorageValue, construct_runtime, parameter_types};
+pub use staking::StakerStatus;
 
 mod channel;
-mod oracle;
+pub mod oracle;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -54,9 +56,6 @@ pub type AccountId = <Signature as Verify>::Signer;
 /// never know...
 pub type AccountIndex = u32;
 
-/// Balance of an account.
-pub type Balance = u128;
-
 /// Index of a transaction in the chain.
 pub type Index = u32;
 
@@ -70,7 +69,7 @@ pub type DigestItem = generic::DigestItem<Hash>;
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
-/// to even the core datastructures.
+/// to even the core data structures.
 pub mod opaque {
 	use super::*;
 
@@ -83,7 +82,7 @@ pub mod opaque {
 	/// Opaque block identifier type.
 	pub type BlockId = generic::BlockId<Block>;
 
-	pub type SessionHandlers = (Grandpa, Babe);
+	pub type SessionHandlers = (Grandpa, Babe, Oracle);
 
 	impl_opaque_keys! {
 		pub struct SessionKeys {
@@ -91,6 +90,8 @@ pub mod opaque {
 			pub grandpa: GrandpaId,
 			#[id(key_types::BABE)]
 			pub babe: BabeId,
+			#[id(ORACLE)]
+			pub oracle: OracleId,
 		}
 	}
 }
@@ -250,6 +251,54 @@ impl balances::Trait for Runtime {
 	type WeightToFee = ConvertInto;
 }
 
+type SessionHandlers = (Grandpa, Babe, Oracle);
+
+impl_opaque_keys! {
+	pub struct SessionKeys {
+		#[id(key_types::GRANDPA)]
+		pub grandpa: GrandpaId,
+		#[id(key_types::BABE)]
+		pub babe: BabeId,
+		#[id(ORACLE)]
+		pub oracle: OracleId,
+	}
+}
+
+impl session::Trait for Runtime {
+	type OnSessionEnding = Staking;
+	type SessionHandler = SessionHandlers;
+	type ShouldEndSession = Babe;
+	type Event = Event	;
+	type Keys = SessionKeys;
+	type ValidatorId = AccountId;
+	type ValidatorIdOf = staking::StashOf<Self>;
+	type SelectInitialValidators = Staking;
+}
+
+impl session::historical::Trait for Runtime {
+	type FullIdentification = staking::Exposure<AccountId, Balance>;
+	type FullIdentificationOf = staking::ExposureOf<Runtime>;
+}
+
+parameter_types! {
+	pub const SessionsPerEra: sr_staking_primitives::SessionIndex = 6;
+	pub const BondingDuration: staking::EraIndex = 24 * 1; // One day Eras.
+}
+
+impl staking::Trait for Runtime {
+	type Currency = Balances;
+	type Time = Timestamp;
+	type CurrencyToVote = ();
+	type OnRewardMinted = ();
+	type Event = Event;
+	type Slash = (); // send the slashed funds to the treasury.
+	type Reward = (); // rewards are minted from the void
+	type SessionsPerEra = SessionsPerEra;
+	type BondingDuration = BondingDuration;
+	type SessionInterface = Self;
+}
+
+
 impl sudo::Trait for Runtime {
 	type Event = Event;
 	type Proposal = Call;
@@ -281,6 +330,8 @@ construct_runtime!(
 		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Indices: indices::{default, Config<T>},
 		Balances: balances,
+		Staking: staking::{default, OfflineWorker},
+		Session: session::{Module, Call, Storage, Event, Config<T>},
 		Sudo: sudo,
 		Channel: channel::{Module, Call, Storage, Event<T>},
 		Oracle: oracle::{Module, Call, Storage, Event},

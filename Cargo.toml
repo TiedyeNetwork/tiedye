@@ -1,13 +1,13 @@
-[package]
-authors = ['TiedyeNetwork']
-build = 'build.rs'
-edition = '2018'
-name = 'tiedye'
-version = '0.0.1'
-
 [[bin]]
 name = 'tiedye'
 path = 'src/main.rs'
+
+[package]
+name = 'tiedye'
+version = '0.0.1'
+authors = ['Tiedye Network <hi@tiedye.io>']
+build = 'build.rs'
+edition = '2018'
 
 [build-dependencies]
 vergen = '3'
@@ -16,7 +16,10 @@ vergen = '3'
 panic = 'unwind'
 
 [workspace]
-members = ['runtime']
+members = [
+    'primitives',
+    'runtime'
+]
 
 [dependencies]
 derive_more = '0.14.0'
@@ -73,9 +76,17 @@ rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
 [dependencies.tiedye-runtime]
 path = 'runtime'
 
+[dependencies.tiedye-primitives]
+path = 'primitives'
+
 [dependencies.primitives]
 git = 'https://github.com/paritytech/substrate.git'
 package = 'substrate-primitives'
+rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
+
+[dependencies.sr-primitives]
+default_features = false
+git = 'https://github.com/paritytech/substrate.git'
 rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
 
 [dependencies.sr-io]

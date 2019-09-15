@@ -1,11 +1,15 @@
 use primitives::{Pair, Public};
 use tiedye_runtime::{
 	AccountId, BabeConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
+	SessionConfig, SessionKeys, StakerStatus, StakingConfig,
 	SudoConfig, IndicesConfig, SystemConfig, WASM_BINARY, 
 };
 use babe_primitives::{AuthorityId as BabeId};
 use grandpa_primitives::{AuthorityId as GrandpaId};
+use tiedye_primitives::Balance;
+use tiedye_runtime::oracle::sr25519::{AuthorityId as OracleId};
 use substrate_service;
+use sr_primitives::Perbill;
 
 // Note this is the URL for the telemetry server
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -22,6 +26,12 @@ pub enum Alternative {
 	Development,
 	/// Whatever the current runtime is, with simple Alice/Bob auths.
 	LocalTestnet,
+	/// Tiedye testnet v0.0.1
+	Sunburst,
+}
+
+fn session_keys(grandpa: GrandpaId, babe: BabeId, oracle: OracleId) -> SessionKeys {
+	SessionKeys { grandpa, babe, oracle }
 }
 
 /// Helper function to generate a crypto pair from seed
@@ -32,12 +42,13 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 }
 
 /// Helper function to generate stash, controller and session key from seed
-pub fn get_authority_keys_from_seed(seed: &str) -> (AccountId, AccountId, GrandpaId, BabeId) {
+pub fn get_authority_keys_from_seed(seed: &str) -> (AccountId, AccountId, GrandpaId, BabeId, OracleId) {
 	(
 		get_from_seed::<AccountId>(&format!("{}//stash", seed)),
 		get_from_seed::<AccountId>(seed),
 		get_from_seed::<GrandpaId>(seed),
 		get_from_seed::<BabeId>(seed),
+		get_from_seed::<OracleId>(seed),
 	)
 }
 
@@ -94,6 +105,7 @@ impl Alternative {
 				None,
 				None
 			),
+			Alternative::Sunburst => ChainSpec::from_json_file(std::path::PathBuf::from("../sunburst.json")).unwrap(),
 		})
 	}
 
@@ -101,12 +113,15 @@ impl Alternative {
 		match s {
 			"dev" => Some(Alternative::Development),
 			"" | "local" => Some(Alternative::LocalTestnet),
+			"sunburst" => Some(Alternative::Sunburst),
 			_ => None,
 		}
 	}
 }
 
-fn testnet_genesis(initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId)>,
+const STASH: Balance = 1 << 59;
+
+fn testnet_genesis(initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, OracleId)>,
 	root_key: AccountId, 
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool) -> GenesisConfig {
@@ -130,6 +145,22 @@ fn testnet_genesis(initial_authorities: Vec<(AccountId, AccountId, GrandpaId, Ba
 		}),
 		grandpa: Some(GrandpaConfig {
 			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+		}),
+		session: Some(SessionConfig {
+			keys: initial_authorities.iter().map(|x| {
+				(x.0.clone(), session_keys(x.2.clone(), x.3.clone(), x.4.clone()))
+			}).collect::<Vec<_>>(),
+		}),
+		staking: Some(StakingConfig {
+			current_era: 0,
+			validator_count: 7,
+			minimum_validator_count: 4,
+			stakers: initial_authorities.iter().map(|x| {
+				(x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator)
+			}).collect(),
+			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+			slash_reward_fraction: Perbill::from_percent(0),
+			.. Default::default()
 		}),
 	}
 }
