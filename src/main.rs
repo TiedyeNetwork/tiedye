@@ -14,7 +14,7 @@ fn main() {
 		commit: env!("VERGEN_SHA_SHORT"),
 		version: env!("CARGO_PKG_VERSION"),
 		executable_name: "tiedye",
-		author: "TiedyeNetwork",
+		author: "Tiedye Network <hi@tiedye.io>",
 		description: "A next generation financial engine.",
 		support_url: "https://github.com/TiedyeNetwork/tiedye/issues",
 	};

@@ -20,15 +20,15 @@ inside of a special kind of state channel known as synthetic channels, that allo
 Tiedye is agnostic to the kind of financial agreements that exist on the second layer network, some products that can
 be built on top of the base Tiedye blockchain include:
 
-- Margin trading. TieDEX could offer leveraged positions on _any_ asset, cryptoasset or 
+- **Margin trading.** TieDEX could offer leveraged positions on _any_ asset, cryptoasset or 
 traditional, with very little-- possibly no-- overhead to the counterparty.
 
-- Prediction markets. Excerpt of the Rainbow Network paper: "Prediction market shares are particularly well-suited for 
+- **Prediction markets.** Excerpt of the Rainbow Network paper: "Prediction market shares are particularly well-suited for 
 Rainbow channels, because their prices have a fixed upper bound, which means it is possible to fully collateralize
 positions in those shares. In fact, trading prediction market shares in Rainbow channels only requires the same amount
 of collateralization as is required to trade those shares on-chain."
 
-- Fiat currencies, exotic derivatives, complex financial contracts. The Tiedye settlement layer is completely agnostic
+- **Fiat currencies, exotic derivatives, complex financial contracts.** The Tiedye settlement layer is completely agnostic
 to the kinds of assets that are traded inside of its synthetic channels. They could be fiat currencies like the euro,
 oil futures, or leveraged exposure with interest. As long as there's an accepted price oracle, it can be traded.
 
