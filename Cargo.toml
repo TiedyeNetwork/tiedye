@@ -1,5 +1,17 @@
+[package]
+authors = ['TiedyeNetwork']
+build = 'build.rs'
+edition = '2018'
+name = 'tiedye'
+version = '0.0.1'
+
+[[bin]]
+name = 'tiedye'
+path = 'src/main.rs'
+
 [build-dependencies]
 vergen = '3'
+
 [profile.release]
 panic = 'unwind'
 
@@ -90,14 +102,3 @@ rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
 git = 'https://github.com/paritytech/substrate.git'
 package = 'substrate-transaction-pool'
 rev = '6d48cce29aa7bcb8c11070a400179f1188a7f620'
-
-[package]
-authors = ['TiedyeNetwork']
-build = 'build.rs'
-edition = '2018'
-name = 'tiedye'
-version = '2.0.0'
-
-[[bin]]
-name = 'tiedye'
-path = 'src/main.rs'

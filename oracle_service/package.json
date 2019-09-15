@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Tiedye Network",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1"
