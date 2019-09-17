@@ -141,10 +141,10 @@ fn testnet_genesis(initial_authorities: Vec<(AccountId, AccountId, GrandpaId, Ba
 			key: root_key,
 		}),
 		babe: Some(BabeConfig {
-			authorities: initial_authorities.iter().map(|x| (x.3.clone(), 1)).collect(),
+			.. Default::default()
 		}),
 		grandpa: Some(GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			.. Default::default()
 		}),
 		session: Some(SessionConfig {
 			keys: initial_authorities.iter().map(|x| {

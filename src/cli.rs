@@ -14,12 +14,12 @@ pub fn run<I, T, E>(args: I, exit: E, version: VersionInfo) -> error::Result<()>
 	T: Into<std::ffi::OsString> + Clone,
 	E: IntoExit,
 {
-	match parse_and_prepare::<NoCustom, NoCustom, _>(&version, "substrate-node", args) {
+	match parse_and_prepare::<NoCustom, NoCustom, _>(&version, "tiedye-node", args) {
 		ParseAndPrepare::Run(cmd) => cmd.run::<(), _, _, _, _>(load_spec, exit,
 		|exit, _cli_args, _custom_args, config| {
 			info!("{}", version.name);
 			info!("  version {}", config.full_version());
-			info!("  by {}, 2017, 2018", version.author);
+			info!("  by {}, 2019", version.author);
 			info!("Chain specification: {}", config.chain_spec.name());
 			info!("Node name: {}", config.name);
 			info!("Roles: {:?}", config.roles);

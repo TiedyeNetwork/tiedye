@@ -4,7 +4,12 @@
   "bootNodes": [
     "/ip4/127.0.0.1/tcp/30333/p2p/QmcwMd2N9T9fsMbgr4JvvFtNnhsfzV91r2yHZxTmCWsTwz"
   ],
-  "telemetryEndpoints": null,
+  "telemetryEndpoints": [
+    [
+      "wss://telemetry.polkadot.io/submit/", 
+      0
+    ]
+  ],
   "protocolId": "tiedye",
   "consensusEngine": null,
   "properties": {
