@@ -13,7 +13,7 @@ use rstd::prelude::*;
 use sr_primitives::app_crypto::RuntimeAppPublic;
 use sr_primitives::traits::Member;
 use sr_primitives::transaction_validity::{TransactionValidity, TransactionLongevity, ValidTransaction, InvalidTransaction};
-use support::{decl_module, decl_event, decl_storage, Parameter, StorageMap, StorageValue, dispatch::Result};
+use support::{decl_module, decl_event, decl_storage, Parameter, StorageMap, StorageValue};
 use system::ensure_none;
 use system::offchain::SubmitUnsignedTransaction;
 
@@ -44,6 +44,35 @@ pub struct OracleResult<Moment> {
     values: Vec<u32>,
     // Last update.
     last_update: Moment,
+}
+
+/// Error which may occur while executing the off-chain code.
+#[cfg_attr(feature = "std", derive(Debug))]
+enum OffchainErr {
+	DecodeWorkerStatus,
+	FailedSigning,
+	NetworkState,
+	SubmitTransaction,
+}
+
+impl support::Printable for OffchainErr {
+	fn print(&self) {
+		match self {
+			OffchainErr::DecodeWorkerStatus => support::print("Offchain error: decoding WorkerStatus failed!"),
+			OffchainErr::FailedSigning => support::print("Offchain error: signing failed!"),
+			OffchainErr::NetworkState => support::print("Offchain error: fetching network state failed!"),
+			OffchainErr::SubmitTransaction => support::print("Offchain error: submitting transaction failed!"),
+		}
+	}
+}
+
+pub type AuthIndex = u32;
+
+#[derive(Default, Encode, Decode, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct OracleMessage {
+    value: u32,
+    authority_index: AuthIndex,
 }
 
 pub trait Trait: system::Trait + timestamp::Trait + session::Trait {
@@ -85,14 +114,14 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event() = default;
 
-        fn update_feed(origin, value: u32, signature: <T::AuthorityId as RuntimeAppPublic>::Signature) {
+        fn update_feed(origin, message: OracleMessage, signature: <T::AuthorityId as RuntimeAppPublic>::Signature) {
             ensure_none(origin)?;
             support::print("update feed");
             
             if !<Results<T>>::exists(1) {
                 support::print("doesn't exist");
                 let mut o = OracleResult::default();
-                o.values = vec![value];
+                o.values = vec![message.value];
                 o.last_update = <timestamp::Module<T>>::now();
                 <Results<T>>::insert(1, o);
                 // <Results<T>>::insert(0, OracleResult { values: vec![value], last_update: <timestamp::Module<T>>::now() });
@@ -100,10 +129,10 @@ decl_module! {
                 support::print("exists");
                 <Results<T>>::mutate(1, |o| {
                     if o.values.len() < 100 {
-                        o.values.push(value);
+                        o.values.push(message.value);
                     } else {
                         o.values.drain(0..1);
-                        o.values.push(value);
+                        o.values.push(message.value);
                     }
                     o.last_update = <timestamp::Module<T>>::now();
                 });
@@ -114,8 +143,10 @@ decl_module! {
         fn offchain_worker(now: T::BlockNumber) {
             support::print("Hello from the offchain worker!");
             let value = Self::fetch("http://localhost:7666/mock");
-            support::print(value as u64);
-            Self::do_update(value);
+            match Self::do_update(value) {
+                Ok(_) => {},
+                Err(err) => support::print(err),
+            }
         }
     }
 }
@@ -135,7 +166,9 @@ impl<T: Trait> Module<T> {
         u32::decode(&mut result).unwrap()
     }
 
-    fn do_update(value: u32) -> Result {
+    fn do_update(value: u32) -> Result<(), OffchainErr> {
+        support::print("Here is the value!");
+        support::print(value as u64);
         let authorities = Keys::<T>::get();
         let mut local_keys = T::AuthorityId::all();
         local_keys.sort();
@@ -148,12 +181,15 @@ impl<T: Trait> Module<T> {
                     .map(|location| (index as u32, &local_keys[location]))
             })
         {
-            let oracle_data = value;
+            let oracle_message = OracleMessage {
+                value: value,
+                authority_index: authority_index,
+            };
 
-            let signature = key.sign(&oracle_data.encode()).ok_or("Incorrect")?;
-            let call = Call::update_feed(oracle_data, signature);
+            let signature = key.sign(&oracle_message.encode()).ok_or(OffchainErr::FailedSigning)?;
+            let call = Call::update_feed(oracle_message, signature);
             T::SubmitTransaction::submit_unsigned(call)
-                .map_err(|_| "Unable to submit_unsigned.")?;
+                .map_err(|_| OffchainErr::SubmitTransaction)?;
         }
         Ok(())
     }
@@ -196,18 +232,19 @@ impl<T: Trait> support::unsigned::ValidateUnsigned for Module<T> {
     type Call = Call<T>;
 
     fn validate_unsigned(call: &Self::Call) -> TransactionValidity {
-        if let Call::update_feed(value, signature) = call {
+        if let Call::update_feed(oracle_message, signature) = call {
 
+            support::print("HERE");
             let current_session = <session::Module<T>>::current_index();
 
             let keys = Keys::<T>::get();
-            let authority_id = match keys.get(1) {
+            let authority_id = match keys.get(oracle_message.authority_index as usize) {
                 Some(id) => id,
                 None => return InvalidTransaction::BadProof.into(),
             };
 
-            let signature_valid = value.using_encoded(|encoded_value| {
-                authority_id.verify(&encoded_value, &signature)
+            let signature_valid = oracle_message.using_encoded(|encoded_message| {
+                authority_id.verify(&encoded_message, &signature)
             });
 
             if !signature_valid {
@@ -222,6 +259,7 @@ impl<T: Trait> support::unsigned::ValidateUnsigned for Module<T> {
                 propagate: true,
             })
         } else {
+            support::print("ELSE");
             InvalidTransaction::Call.into()
         }
     }
