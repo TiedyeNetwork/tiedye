@@ -9,7 +9,7 @@ edition = "2018"
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'substrate-primitives'
-rev = 'd5393f3a5f4318951a8ce0de3637848589a72c60'
+rev = 'ce03f373c88e28f7d23df64f8d4e2f3588c6ca3f'
 
 # [dependencies]
 # serde = { version = "1.0", optional = true, features = ["derive"] }

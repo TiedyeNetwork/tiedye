@@ -22,6 +22,7 @@ use grandpa::{AuthorityId as GrandpaId, AuthorityWeight as GrandpaWeight};
 use grandpa::fg_primitives;
 use oracle::sr25519::{AuthorityId as OracleId};
 use tiedye_primitives::{Balance, ORACLE};
+use support::traits::Randomness;
 use system::offchain::TransactionSubmitter;
 use client::{
 	block_builder::api::{CheckInherentsResult, InherentData, self as block_builder_api},
@@ -194,6 +195,7 @@ parameter_types! {
 impl babe::Trait for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ExpectedBlockTime;
+	type EpochChangeTrigger = babe::ExternalTrigger;
 }
 
 impl grandpa::Trait for Runtime {
@@ -353,6 +355,7 @@ construct_runtime!(
 		Sudo: sudo,
 		Channel: channel::{Module, Call, Storage, Event<T>},
 		Oracle: oracle::{Module, Call, Storage, Event},
+		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Storage},
 	}
 );
 
@@ -421,7 +424,7 @@ impl_runtime_apis! {
 		}
 
 		fn random_seed() -> <Block as BlockT>::Hash {
-			System::random_seed()
+			RandomnessCollectiveFlip::random_seed()
 		}
 	}
 
