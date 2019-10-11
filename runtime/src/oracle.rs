@@ -1,6 +1,8 @@
 //! Oracle Module
 //! 
-//! The Oracle module allows for the querying of offchain price feeds and recording thereof.
+//! The Oracle module allows for off-chain price feeds to be queried by the validator set and to be recorded on-chain.
+//! It will store the current raw value of the feed as well as a medianized value. These two values are used in
+//! different situations of the channels protocol, depending on the type of close that was chosen.
 //! 
 //! ## Interface
 //! 
@@ -234,7 +236,6 @@ impl<T: Trait> support::unsigned::ValidateUnsigned for Module<T> {
     fn validate_unsigned(call: &Self::Call) -> TransactionValidity {
         if let Call::update_feed(oracle_message, signature) = call {
 
-            support::print("HERE");
             let current_session = <session::Module<T>>::current_index();
 
             let keys = Keys::<T>::get();
@@ -259,7 +260,6 @@ impl<T: Trait> support::unsigned::ValidateUnsigned for Module<T> {
                 propagate: true,
             })
         } else {
-            support::print("ELSE");
             InvalidTransaction::Call.into()
         }
     }

@@ -1,5 +1,3 @@
-//! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
-
 use std::sync::Arc;
 use std::time::Duration;
 use substrate_client::LongestChain;
